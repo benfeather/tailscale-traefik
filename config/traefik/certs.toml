@@ -1,0 +1,9 @@
+[[tls.certificates]]
+  certFile = "/etc/letsencrypt/live/benfeather.com/fullchain.pem"
+  keyFile = "/etc/letsencrypt/live/benfeather.com/privkey.pem"
+
+[tls.stores]
+  [tls.stores.default]
+    [tls.stores.default.defaultCertificate]
+      certFile = "/etc/letsencrypt/live/benfeather.com/fullchain.pem"
+      keyFile = "/etc/letsencrypt/live/benfeather.com/privkey.pem"
