@@ -1,0 +1,68 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    hostname: homelab
+    env_file:
+      - .env
+    environment:
+      - TS_AUTH_ONCE=true
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SOCKET=/var/run/tailscale/tailscaled.sock
+    volumes:
+      - tailscale-data:/var/lib/tailscale
+      - tailscale-sock:/var/run/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    networks:
+      - proxy
+
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    env_file:
+      - .env
+    command:
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+    volumes:
+      - tailscale-sock:/var/run/tailscale:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - tailscale
+    network_mode: service:tailscale
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.${TS_DOMAIN}`)
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.entrypoints=web
+      - traefik.http.services.traefik.loadbalancer.server.port=8080
+
+  whoami:
+    image: traefik/whoami:latest
+    container_name: whoami
+    env_file:
+      - .env
+    networks:
+      - proxy
+    depends_on:
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.whoami.rule=Host(`whoami.${TS_DOMAIN}`)
+      - traefik.http.routers.whoami.entrypoints=web
+
+networks:
+  proxy:
+    driver: bridge
+
+volumes:
+  tailscale-data:
+    driver: local
+  tailscale-sock:
+    driver: local
