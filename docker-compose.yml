@@ -35,8 +35,8 @@ services:
   #         --email '${TS_EMAIL}' 
   #         --keep-until-expiring 
   #         --no-eff-email 
-  #         -d '${TS_DOMAIN}' 
-  #         -d '*.${TS_DOMAIN}'
+  #         -d '${DOMAIN}' 
+  #         -d '*.${DOMAIN}'
 
   traefik:
     image: traefik:latest
@@ -52,7 +52,7 @@ services:
     network_mode: service:tailscale
     labels:
       - traefik.enable=true
-      - traefik.http.routers.dashboard.rule=Host(`traefik.${TS_DOMAIN}`)
+      - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
       - traefik.http.routers.dashboard.service=api@internal
       - traefik.http.routers.dashboard.entrypoints=websecure
       - traefik.http.routers.dashboard.tls=true
@@ -69,7 +69,7 @@ services:
       - traefik
     labels:
       - traefik.enable=true
-      - traefik.http.routers.whoami.rule=Host(`whoami.${TS_DOMAIN}`)
+      - traefik.http.routers.whoami.rule=Host(`whoami.${DOMAIN}`)
       - traefik.http.routers.whoami.entrypoints=websecure
       - traefik.http.routers.whoami.tls=true
 
