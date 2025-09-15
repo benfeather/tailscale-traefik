@@ -8,7 +8,6 @@ services:
     environment:
       - TS_AUTH_ONCE=true
       - TS_STATE_DIR=/var/lib/tailscale
-      - TS_SOCKET=/var/run/tailscale/tailscaled.sock
     volumes:
       - /dev/net/tun:/dev/net/tun
       - ./config/tailscale:/var/lib/tailscale
@@ -18,53 +17,38 @@ services:
     networks:
       - proxy
 
-  certbot:
-    image: certbot/dns-cloudflare:latest
-    container_name: certbot
-    env_file:
-      - .env
-    volumes:
-      - ./config/letsencrypt:/etc/letsencrypt
-      - ./secrets/cloudflare.ini:/root/cloudflare.ini:ro
-    command: >-
-        certonly 
-          --agree-tos 
-          --dns-cloudflare 
-          --dns-cloudflare-credentials /root/cloudflare.ini 
-          --dns-cloudflare-propagation-seconds 15 
-          --email '${TS_EMAIL}' 
-          --keep-until-expiring 
-          --no-eff-email 
-          -d '${TS_DOMAIN}' 
-          -d '*.${TS_DOMAIN}'
-    networks:
-      - proxy
+  # certbot:
+  #   image: certbot/dns-cloudflare:latest
+  #   container_name: certbot
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - ./config/letsencrypt:/etc/letsencrypt
+  #     - ./secrets/cloudflare.ini:/root/cloudflare.ini:ro
+  #   command: >-
+  #       certonly 
+  #         --agree-tos 
+  #         --cert-name 'traefik'
+  #         --dns-cloudflare 
+  #         --dns-cloudflare-credentials /root/cloudflare.ini 
+  #         --dns-cloudflare-propagation-seconds 15 
+  #         --email '${TS_EMAIL}' 
+  #         --keep-until-expiring 
+  #         --no-eff-email 
+  #         -d '${TS_DOMAIN}' 
+  #         -d '*.${TS_DOMAIN}'
 
   traefik:
     image: traefik:latest
     container_name: traefik
     env_file:
       - .env
-    command:
-      - --api.dashboard=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      # HTTP to HTTPS redirection
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.web.http.redirections.entrypoint.permanent=true
-      # File provider for certificates
-      - --providers.file.filename=/etc/traefik/certs.toml
-      - --providers.file.watch=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/letsencrypt:/etc/letsencrypt:ro
       - ./config/traefik:/etc/traefik
     depends_on:
       - tailscale
-      - certbot
     network_mode: service:tailscale
     labels:
       - traefik.enable=true

@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: "/etc/letsencrypt/live/traefik/fullchain.pem"
+      keyFile: "/etc/letsencrypt/live/traefik/privkey.pem"
