@@ -2,11 +2,12 @@ services:
   tailscale:
     image: tailscale/tailscale:latest
     container_name: tailscale
-    hostname: homelab
+    network_mode: host
     env_file:
       - .env
     environment:
       - TS_AUTH_ONCE=true
+      - TS_HOSTNAME=homelab
       - TS_STATE_DIR=/var/lib/tailscale
     volumes:
       - /dev/net/tun:/dev/net/tun
@@ -14,33 +15,11 @@ services:
     cap_add:
       - net_admin
       - sys_module
-    networks:
-      - proxy
-
-  # certbot:
-  #   image: certbot/dns-cloudflare:latest
-  #   container_name: certbot
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - ./config/letsencrypt:/etc/letsencrypt
-  #     - ./secrets/cloudflare.ini:/root/cloudflare.ini:ro
-  #   command: >-
-  #       certonly 
-  #         --agree-tos 
-  #         --cert-name 'traefik'
-  #         --dns-cloudflare 
-  #         --dns-cloudflare-credentials /root/cloudflare.ini 
-  #         --dns-cloudflare-propagation-seconds 15 
-  #         --email '${TS_EMAIL}' 
-  #         --keep-until-expiring 
-  #         --no-eff-email 
-  #         -d '${DOMAIN}' 
-  #         -d '*.${DOMAIN}'
 
   traefik:
     image: traefik:latest
     container_name: traefik
+    network_mode: host
     env_file:
       - .env
     volumes:
@@ -49,7 +28,6 @@ services:
       - ./config/traefik:/etc/traefik
     depends_on:
       - tailscale
-    network_mode: service:tailscale
     labels:
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
@@ -63,16 +41,20 @@ services:
     container_name: whoami
     env_file:
       - .env
-    networks:
-      - proxy
-    depends_on:
-      - traefik
     labels:
       - traefik.enable=true
       - traefik.http.routers.whoami.rule=Host(`whoami.${DOMAIN}`)
       - traefik.http.routers.whoami.entrypoints=websecure
       - traefik.http.routers.whoami.tls=true
 
-networks:
-  proxy:
-    driver: bridge
+  certbot:
+    image: serversideup/certbot-dns-cloudflare:latest
+    container_name: certbot
+    env_file:
+      - .env
+    environment:
+      CERTBOT_DOMAINS: "${DOMAIN}"
+      CERTBOT_EMAIL: "${EMAIL}"
+      CLOUDFLARE_API_TOKEN: "${CF_API_TOKEN}"
+    volumes:
+      - ./config/letsencrypt:/etc/letsencrypt
