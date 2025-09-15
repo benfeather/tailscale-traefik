@@ -1,2 +1,3 @@
-secrets/*
+config/*
+.DS_Store
 .env

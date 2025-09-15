@@ -25,9 +25,31 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/letsencrypt:/etc/letsencrypt:ro
-      - ./config/traefik:/etc/traefik
     depends_on:
       - tailscale
+    command:
+      # Global
+      - --global.sendanonymoususage=false
+      # API and Dashboard
+      - --api.dashboard=true
+      - --api.insecure=true
+      # Providers
+      - --providers.docker=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.watch=true
+      # Logging
+      - --log.level=INFO
+      - --log.format=common
+      # EntryPoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # Redirect HTTP to HTTPS
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      # SSL/TLS
+      - --tls.certificates[0].certfile=/etc/letsencrypt/live/${DOMAIN}/fullchain.pem
+      - --tls.certificates[0].keyfile=/etc/letsencrypt/live/${DOMAIN}/privkey.pem
     labels:
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)

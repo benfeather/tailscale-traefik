@@ -1,4 +1,0 @@
-tls:
-  certificates:
-    - certFile: "/etc/letsencrypt/live/benfeather.com/fullchain.pem"
-      keyFile: "/etc/letsencrypt/live/benfeather.com/privkey.pem"
