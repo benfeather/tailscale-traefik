@@ -8,5 +8,5 @@ services:
       - 1.1.1.1
       - 1.0.0.1
     volumes:
-      - ${CONF_DIR}/cloudflared/config.yml:/etc/cloudflared/config.yml:ro
-    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
+      - ${CONF_DIR}/cloudflared:/config
+    command: tunnel --no-autoupdate --config /config/config.yml run

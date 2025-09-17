@@ -11,9 +11,7 @@ services:
       - 443:443
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${CONF_DIR}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ${CONF_DIR}/traefik/acme.json:/etc/traefik/acme.json
-      - ${CONF_DIR}/traefik/logs:/var/log/traefik
+      - ${CONF_DIR}/traefik:/etc/traefik
     labels:
       - traefik.enable=true
       - traefik.http.routers.traefik.entrypoints=websecure
