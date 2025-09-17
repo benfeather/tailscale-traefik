@@ -25,31 +25,28 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/letsencrypt:/etc/letsencrypt:ro
+      - ./config/traefik:/etc/traefik/config:ro
     depends_on:
       - tailscale
     command:
-      # Global
-      - --global.sendanonymoususage=false
       # API and Dashboard
       - --api.dashboard=true
       - --api.insecure=true
+      # EntryPoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # Logging
+      - --log.level=INFO
+      - --log.format=common
       # Providers
       - --providers.docker=true
       - --providers.docker.endpoint=unix:///var/run/docker.sock
       - --providers.docker.exposedbydefault=false
       - --providers.docker.watch=true
-      # Logging
-      - --log.level=INFO
-      - --log.format=common
-      # EntryPoints
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      # Redirect HTTP to HTTPS
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      # SSL/TLS
-      - --tls.certificates[0].certfile=/etc/letsencrypt/live/${DOMAIN}/fullchain.pem
-      - --tls.certificates[0].keyfile=/etc/letsencrypt/live/${DOMAIN}/privkey.pem
+      - --providers.file.directory=/etc/traefik/config
+      - --providers.file.watch=true
     labels:
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
@@ -69,14 +66,15 @@ services:
       - traefik.http.routers.whoami.entrypoints=websecure
       - traefik.http.routers.whoami.tls=true
 
-  certbot:
-    image: serversideup/certbot-dns-cloudflare:latest
-    container_name: certbot
-    env_file:
-      - .env
-    environment:
-      CERTBOT_DOMAINS: "${DOMAIN}"
-      CERTBOT_EMAIL: "${EMAIL}"
-      CLOUDFLARE_API_TOKEN: "${CF_API_TOKEN}"
-    volumes:
-      - ./config/letsencrypt:/etc/letsencrypt
+  # certbot:
+  #   image: serversideup/certbot-dns-cloudflare:latest
+  #   container_name: certbot
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     CERTBOT_DOMAINS: "${DOMAIN},*.${DOMAIN}"
+  #     CERTBOT_EMAIL: "${EMAIL}"
+  #     CLOUDFLARE_API_TOKEN: "${CF_API_TOKEN}"
+  #     REPLACE_SYMLINKS: true
+  #   volumes:
+  #     - ./config/letsencrypt:/etc/letsencrypt
