@@ -1,0 +1,24 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    env_file: 
+      - ../../.env
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${CONF_DIR}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${CONF_DIR}/traefik/acme.json:/etc/traefik/acme.json
+      - ${CONF_DIR}/traefik/logs:/var/log/traefik
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)
+      - traefik.http.routers.traefik.service=api@internal
+      - traefik.http.routers.traefik.entrypoints=websecure
+      - traefik.http.routers.traefik.tls.certresolver=cloudflare
+      - traefik.http.services.traefik.loadbalancer.server.port=8080

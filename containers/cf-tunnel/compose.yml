@@ -1,0 +1,13 @@
+services:
+  cf-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cf-tunnel
+    restart: unless-stopped
+    env_file: 
+      - ../../.env
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+    volumes:
+      - ${CONF_DIR}/cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
