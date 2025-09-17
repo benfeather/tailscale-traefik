@@ -1,80 +1,60 @@
 services:
-  tailscale:
-    image: tailscale/tailscale:latest
-    container_name: tailscale
-    network_mode: host
-    env_file:
+  cf-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cf-tunnel
+    restart: unless-stopped
+    networks:
+      - proxy_network
+    env_file: 
       - .env
-    environment:
-      - TS_AUTH_ONCE=true
-      - TS_HOSTNAME=homelab
-      - TS_STATE_DIR=/var/lib/tailscale
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     volumes:
-      - /dev/net/tun:/dev/net/tun
-      - ./config/tailscale:/var/lib/tailscale
-    cap_add:
-      - net_admin
-      - sys_module
+      - ./config/cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
+    depends_on:
+      - traefik
 
   traefik:
     image: traefik:latest
     container_name: traefik
-    network_mode: host
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - .env
+    networks:
+      - proxy_network
+    ports:
+      - 80:80
+      - 443:443
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./config/letsencrypt:/etc/letsencrypt:ro
-      - ./config/traefik:/etc/traefik/config:ro
-    depends_on:
-      - tailscale
-    command:
-      # API and Dashboard
-      - --api.dashboard=true
-      - --api.insecure=true
-      # EntryPoints
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      # Logging
-      - --log.level=INFO
-      - --log.format=common
-      # Providers
-      - --providers.docker=true
-      - --providers.docker.endpoint=unix:///var/run/docker.sock
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.watch=true
-      - --providers.file.directory=/etc/traefik/config
-      - --providers.file.watch=true
+      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/traefik/acme.json:/etc/traefik/acme.json
+      - ./config/traefik/logs:/var/log/traefik
     labels:
       - traefik.enable=true
-      - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
-      - traefik.http.routers.dashboard.service=api@internal
-      - traefik.http.routers.dashboard.entrypoints=websecure
-      - traefik.http.routers.dashboard.tls=true
-      - traefik.http.services.traefik.loadbalancer.server.port=8080
-
+      - traefik.http.routers.traefik-dashboard.rule=Host(`dashboard.${DOMAIN}`)
+      - traefik.http.routers.traefik-dashboard.service=api@internal
+      - traefik.http.routers.traefik-dashboard.entrypoints=websecure
+      - traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare
+      - traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080
+ 
   whoami:
     image: traefik/whoami:latest
     container_name: whoami
-    env_file:
+    restart: unless-stopped
+    env_file: 
       - .env
+    networks:
+      - proxy_network
     labels:
       - traefik.enable=true
       - traefik.http.routers.whoami.rule=Host(`whoami.${DOMAIN}`)
-      - traefik.http.routers.whoami.entrypoints=websecure
-      - traefik.http.routers.whoami.tls=true
-
-  # certbot:
-  #   image: serversideup/certbot-dns-cloudflare:latest
-  #   container_name: certbot
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     CERTBOT_DOMAINS: "${DOMAIN},*.${DOMAIN}"
-  #     CERTBOT_EMAIL: "${EMAIL}"
-  #     CLOUDFLARE_API_TOKEN: "${CF_API_TOKEN}"
-  #     REPLACE_SYMLINKS: true
-  #   volumes:
-  #     - ./config/letsencrypt:/etc/letsencrypt
+ 
+networks:
+  proxy_network:
+    name: proxy_network
+    driver: bridge
