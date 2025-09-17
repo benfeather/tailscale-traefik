@@ -1,8 +1,11 @@
 {
 	"cSpell.words": [
+		"authentik",
 		"certbot",
 		"certresolver",
 		"cloudflared",
+		"goauthentik",
+		"healthcheck",
 		"homelab",
 		"letsencrypt",
 		"traefik",
