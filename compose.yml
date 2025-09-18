@@ -1,5 +1,5 @@
 include:
-  - containers/authentik/compose.yml
+  - containers/authelia/compose.yml
   - containers/cf-tunnel/compose.yml
   - containers/traefik/compose.yml
   - containers/whoami/compose.yml
